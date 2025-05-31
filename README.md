@@ -3,8 +3,7 @@ This is a Firefox addon that loads tabs sequentially one by one or in batches to
 published here:  
 https://addons.mozilla.org/en-GB/firefox/addon/sequential-tab-loader/
 
-Sequential Tab Loader attempts to solve a particular problem - when opening many new tabs quickly, Firefox handles that... very poorly.   
-It attempts to load them all at once, slowing down the browser and extending the time until any tabs load at all. Especially bad on slow internet connection.
+Sequential Tab Loader attempts to solve a particular problem - when opening many new tabs quickly, Firefox handles that... very poorly. It attempts to load them all at once, slowing down the browser and extending the time until any tabs load at all. Especially bad on slow internet connection.
 
 **This addon does the following:**
 
