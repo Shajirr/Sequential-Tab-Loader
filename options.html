@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="color-scheme" content="light dark">
+    <title>Sequential Tab Loader Options</title>
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+    <style>
+        body {
+            padding: 10px;
+            background-color: var(--in-content-page-background, #fff);
+            color: var(--in-content-page-color, #000);
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 7.5px;
+        }
+        label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px; /* Consistent font size for accessibility */
+        }
+        input[type="number"] {
+            width: 60px;
+            padding: 4px;
+            border: 1px solid var(--in-content-box-border-color, #ccc);
+            border-radius: 4px;
+            background-color: var(--in-content-box-background, #fff);
+            color: var(--in-content-text-color, #000);
+        }
+        select {
+            width: auto;
+            min-width: 200px;
+            max-width: 100%;
+            padding: 4px;
+            border: 1px solid var(--in-content-box-border-color, #ccc);
+            border-radius: 4px;
+            background-color: var(--in-content-box-background, #fff);
+            color: var(--in-content-text-color, #000);
+            font-size: inherit;
+        }
+        button {
+            width: auto;
+            display: inline-block;
+            padding: 5px 10px;
+            margin-top: 10px;
+            background-color: var(--in-content-button-background, #e0e0e0);
+            color: var(--in-content-button-color, #000);
+            border: 1px solid var(--in-content-button-border-color, #ccc);
+            border-radius: 4px;
+            cursor: pointer; /* Ensure clickable appearance */
+        }
+        button:hover {
+            background-color: var(--in-content-button-background-hover, #d0d0d0);
+        }
+        .save-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #save-message {
+            color: var(--in-content-text-color, #000);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            font-size: 14px; /* Match label font size */
+        }
+        #save-message.visible {
+            opacity: 1;
+        }
+        /* Dark mode adjustments */
+        @media (prefers-color-scheme: dark) {
+            input[type="number"], select {
+                background-color: var(--in-content-box-background, #3a3a3e);
+                color: var(--in-content-text-color, #d0d0d0);
+            }
+            button {
+                background-color: var(--in-content-button-background, #4a4a4e);
+                color: var(--in-content-button-color, #fff);
+            }
+            button:hover {
+                background-color: var(--in-content-button-background-hover, #5a5a5e);
+            }
+            #save-message {
+                color: var(--in-content-text-color, #d0d0d0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <form id="options-form">
+        <label>
+            Maximum concurrent tabs to load:
+            <input type="number" id="max-tabs" min="1" value="1">
+        </label>
+        <label>
+            Queue limit (3-100):
+            <input type="number" id="queue-limit" min="3" max="100" value="25">
+        </label>
+        <label>
+            Tab loading behavior:
+            <select id="load-behavior">
+                <option value="queue-active">Load tabs (queue active)</option>
+                <option value="stay-discarded">Don't load tabs (tabs stay unloaded)</option>
+            </select>
+        </label>
+        <div class="save-container">
+            <button id="save" type="submit">Save</button>
+            <span id="save-message">Settings saved!</span>
+        </div>
+    </form>
+    <script src="options.js"></script>
+</body>
+</html>
