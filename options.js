@@ -2,10 +2,12 @@
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // Load saved settings
-        const result = await browser.storage.local.get(['maxConcurrentTabs', 'queueLimit', 'loadBehavior']);
+        const result = await browser.storage.local.get(['maxConcurrentTabs', 'queueLimit', 'loadBehavior', 'discardingDelay', 'loadingDelay']);
         document.getElementById('max-tabs').value = result.maxConcurrentTabs || 1;
         document.getElementById('queue-limit').value = result.queueLimit || 25;
         document.getElementById('load-behavior').value = result.loadBehavior || 'queue-active';
+        document.getElementById('discarding-delay').value = result.discardingDelay || 0;
+        document.getElementById('loading-delay').value = result.loadingDelay || 0;
     } catch (error) {
         console.error('Failed to load settings:', error);
         alert('Error loading settings. Please try again.');
@@ -17,6 +19,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const maxTabs = parseInt(document.getElementById('max-tabs').value, 10);
         const queueLimit = parseInt(document.getElementById('queue-limit').value, 10);
         const loadBehavior = document.getElementById('load-behavior').value;
+        const discardingDelay = parseInt(document.getElementById('discarding-delay').value, 10);
+        const loadingDelay = parseInt(document.getElementById('loading-delay').value, 10);
 
         // Validate inputs
         if (Number.isNaN(maxTabs) || maxTabs < 1) {
@@ -31,13 +35,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert('Invalid tab loading behavior selected.');
             return;
         }
+        if (Number.isNaN(discardingDelay) || discardingDelay < 0 || discardingDelay > 1000) {
+            alert('Discarding delay must be between 0 and 1000.');
+            return;
+        }
+        if (Number.isNaN(loadingDelay) || loadingDelay < 0 || loadingDelay > 5000) {
+            alert('Loading delay must be between 0 and 5000.');
+            return;
+        }
 
         try {
             // Save settings
             await browser.storage.local.set({
                 maxConcurrentTabs: maxTabs,
                 queueLimit: queueLimit,
-                loadBehavior: loadBehavior
+                loadBehavior: loadBehavior,
+                discardingDelay: discardingDelay,
+                loadingDelay: loadingDelay
             });
             const message = document.getElementById('save-message');
             message.classList.add('visible');
