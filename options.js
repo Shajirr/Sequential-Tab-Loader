@@ -8,6 +8,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('load-behavior').value = result.loadBehavior || 'queue-active';
         document.getElementById('discarding-delay').value = result.discardingDelay || 0;
         document.getElementById('loading-delay').value = result.loadingDelay || 0;
+        
+        // Disable max-tabs if loading-delay is not zero
+        const maxTabsInput = document.getElementById('max-tabs');
+        const loadingDelayInput = document.getElementById('loading-delay');
+        const initialDelayValue = parseInt(loadingDelayInput.value, 10);
+        maxTabsInput.disabled = (initialDelayValue !== 0);
+
+        // Add event listener to loading-delay to toggle max-tabs disabled state
+        loadingDelayInput.addEventListener('input', () => {
+            const delayValue = parseInt(loadingDelayInput.value, 10);
+            maxTabsInput.disabled = (delayValue !== 0);
+        });
     } catch (error) {
         console.error('Failed to load settings:', error);
         alert('Error loading settings. Please try again.');

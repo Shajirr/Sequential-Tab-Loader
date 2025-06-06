@@ -15,6 +15,70 @@ function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Create context menu items for the browser action
+browser.menus.create({
+    id: "resume-loading",
+    title: "Resume loading",
+    contexts: ["browser_action"]
+});
+
+browser.menus.create({
+    id: "load-next-tab",
+    title: "Load next tab",
+    contexts: ["browser_action"]
+});
+
+browser.menus.create({
+    id: "empty-queue",
+    title: "Empty the queue",
+    contexts: ["browser_action"]
+});
+
+// Handle menu item clicks
+browser.menus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === "resume-loading") {
+        if (!isPaused && loadBehavior === 'queue-active') {
+            // reset isProcessing flag
+            if (isProcessing) {
+                isProcessing = false; // Reset the flag if stuck
+            }
+            // Reset states to restart queue
+            activeLoads = 0;
+            loadingTabs.clear();
+            //console.debug("Reset activeLoads and loadingTabs");
+            // Restart queue processing
+            if (loadingDelay == 0) {
+                processQueue(); 
+            } else {
+                processQueueDelay();
+            }
+        }
+    } else if (info.menuItemId === "load-next-tab") {
+        if (isProcessing) {
+            isProcessing = false; // Reset the flag if stuck
+        }
+        if (tabQueue.length > 0) {
+            const skippedTab = tabQueue.shift(); // Skip the first tab
+            //console.debug(`Skipped tab ${skippedTab.id}`);
+            updateBadge();
+            if (!isPaused && loadBehavior === 'queue-active') {
+                if (loadingDelay == 0) {
+                    processQueue();
+                } else {
+                    processQueueDelay();
+                }
+            }
+        }
+    } else if (info.menuItemId === "empty-queue") {
+        isProcessing = false; // Reset the flag
+        tabQueue = []; // Clear the queue
+        activeLoads = 0; // Reset active loads
+        loadingTabs.clear(); // Clear loading tabs
+        //console.debug("Queue emptied, activeLoads and loadingTabs reset");
+        updateBadge();
+    }
+});
+
 // Initialize settings from storage
 async function initializeSettings() {
     try {
