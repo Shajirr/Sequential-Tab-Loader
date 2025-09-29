@@ -22,6 +22,9 @@
             gap: 10px;
             font-size: 14px; /* Consistent font size for accessibility */
         }
+		input[type="checkbox"] {
+			margin-right: -3px; /* Compensate for the 10px gap */
+		}
         input[type="number"] {
             width: 60px;
             padding: 4px;
@@ -97,8 +100,8 @@
             Only active if "Tab loading delay" is zero
         </label>
         <label>
-            Queue limit (3-100):
-            <input type="number" id="queue-limit" min="3" max="100" value="25">
+            Queue limit (3-500):
+            <input type="number" id="queue-limit" min="3" max="500" value="25">
             Default: 25
         </label>
         <label>
@@ -118,6 +121,10 @@
             <input type="number" id="loading-delay" min="0" max="5000" step="50" value="0">
             Default: 0
         </label>
+		<label>
+			<input type="checkbox" id="alt-click-discarded">
+			Alt+click links to open in discarded tabs
+		</label>
         <div class="save-container">
             <button id="save" type="submit">Save</button>
             <span id="save-message">Settings saved!</span>

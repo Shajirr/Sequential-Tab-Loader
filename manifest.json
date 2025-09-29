@@ -1,21 +1,34 @@
 {
   "manifest_version": 2,
   "name": "Sequential Tab Loader",
-  "version": "2025.6.6",
+  "version": "2025.9.30",
   "description": "Loads tabs sequentially or in batches to reduce lag.",
+  
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{c47f9d59-d92b-4e30-953a-6c057cd0d695}",
+	  "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+  
   "permissions": [
     "tabs",
     "storage",
     "<all_urls>",
     "menus"
   ],
+  
   "background": {
     "scripts": ["background.js"]
   },
+  
   "options_ui": {
     "page": "options.html",
     "browser_style": false
   },
+  
   "browser_action": {
     "default_area": "navbar",
     "default_icon": {
@@ -27,6 +40,7 @@
     },
     "default_title": "Sequential Tab Loader"
   },
+  
   "icons": {
     "16": "icon.svg",
     "32": "icon.svg",

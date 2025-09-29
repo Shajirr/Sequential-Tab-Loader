@@ -1,5 +1,5 @@
 // Handle options page initialization and form submission
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', async() => {
     try {
         // Load saved settings
         const result = await browser.storage.local.get(['maxConcurrentTabs', 'queueLimit', 'loadBehavior', 'discardingDelay', 'loadingDelay']);
@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('load-behavior').value = result.loadBehavior || 'queue-active';
         document.getElementById('discarding-delay').value = result.discardingDelay || 0;
         document.getElementById('loading-delay').value = result.loadingDelay || 0;
-        
+        document.getElementById('alt-click-discarded').checked = result.altClickDiscarded || false;
+
         // Disable max-tabs if loading-delay is not zero
         const maxTabsInput = document.getElementById('max-tabs');
         const loadingDelayInput = document.getElementById('loading-delay');
@@ -26,21 +27,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Handle form submission
-    document.getElementById('options-form').addEventListener('submit', async (event) => {
+    document.getElementById('options-form').addEventListener('submit', async(event) => {
         event.preventDefault();
         const maxTabs = parseInt(document.getElementById('max-tabs').value, 10);
         const queueLimit = parseInt(document.getElementById('queue-limit').value, 10);
         const loadBehavior = document.getElementById('load-behavior').value;
         const discardingDelay = parseInt(document.getElementById('discarding-delay').value, 10);
         const loadingDelay = parseInt(document.getElementById('loading-delay').value, 10);
+        const altClickDiscarded = document.getElementById('alt-click-discarded').checked;
 
         // Validate inputs
         if (Number.isNaN(maxTabs) || maxTabs < 1) {
             alert('Maximum concurrent tabs must be at least 1.');
             return;
         }
-        if (Number.isNaN(queueLimit) || queueLimit < 3 || queueLimit > 100) {
-            alert('Queue limit must be between 3 and 100.');
+        if (Number.isNaN(queueLimit) || queueLimit < 3 || queueLimit > 500) {
+            alert('Queue limit must be between 3 and 500.');
             return;
         }
         if (!['queue-active', 'stay-discarded'].includes(loadBehavior)) {
@@ -63,7 +65,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 queueLimit: queueLimit,
                 loadBehavior: loadBehavior,
                 discardingDelay: discardingDelay,
-                loadingDelay: loadingDelay
+                loadingDelay: loadingDelay,
+                altClickDiscarded: altClickDiscarded
             });
             const message = document.getElementById('save-message');
             message.classList.add('visible');

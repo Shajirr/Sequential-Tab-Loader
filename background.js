@@ -1,3 +1,11 @@
+const DEBUG = true;
+
+function logDebug(...args) {
+  if (DEBUG) console.log('[Background]', ...args);
+}
+
+logDebug('Sequential Tab Loader background script loaded');
+
 // State management for tab queue and add-on behavior
 let tabQueue = [];
 let activeLoads = 0;
@@ -8,7 +16,11 @@ let loadBehavior = 'queue-active'; // Default: queue active
 let isPaused = false; // Pause state
 let discardingDelay = 0; // Default: no delay
 let loadingDelay = 0; // Default: no delay
+let altClickDiscarded = false;
 const loadingTabs = new Set(); // Track tabs currently loading
+
+// Track which tabs have the content script injected
+const injectedTabs = new Set();
 
 // Delay function for asynchronous waiting
 function delay(ms) {
@@ -23,6 +35,13 @@ browser.menus.create({
 });
 
 browser.menus.create({
+    id: "keep-discarded",
+    title: "Keep tabs discarded (disable queue)",
+    contexts: ["browser_action"],
+    visible: loadBehavior === 'queue-active' // Only show when queue is active
+});
+
+browser.menus.create({
     id: "load-next-tab",
     title: "Load next tab",
     contexts: ["browser_action"]
@@ -34,9 +53,66 @@ browser.menus.create({
     contexts: ["browser_action"]
 });
 
+// Update menu visibility when loadBehavior changes
+function updateContextMenu() {
+    browser.menus.update("keep-discarded", {
+        visible: loadBehavior === 'queue-active'
+    }).catch(() => {}); // Ignore errors if menu doesn't exist yet
+    
+    browser.menus.update("resume-loading", {
+        visible: loadBehavior === 'stay-discarded' || isPaused
+    }).catch(() => {});
+}
+
+// Inject content script into a tab
+async function injectContentScript(tabId, tabUrl) {
+    // Skip special pages and already-injected tabs
+    if (!tabUrl || 
+        tabUrl.startsWith('about:') || 
+        tabUrl.startsWith('moz-extension:') ||
+        tabUrl.startsWith('chrome:') ||
+        injectedTabs.has(tabId)) {
+        return;
+    }
+    
+    try {
+        await browser.tabs.executeScript(tabId, { file: 'content.js' });
+        injectedTabs.add(tabId);
+        logDebug(`Injected content script into tab ${tabId}`);
+    } catch (error) {
+        // Silently ignore errors (e.g., restricted pages)
+        logDebug(`Failed to inject into tab ${tabId}:`, error.message);
+    }
+}
+
+// Inject into currently active tab on startup/setting change
+async function injectIntoActiveTab() {
+    if (!altClickDiscarded) return;
+    
+    try {
+        const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+        if (tabs[0]) {
+            await injectContentScript(tabs[0].id, tabs[0].url);
+        }
+    } catch (error) {
+        logDebug('Error injecting into active tab:', error);
+    }
+}
+
 // Handle menu item clicks
-browser.menus.onClicked.addListener((info, tab) => {
+browser.menus.onClicked.addListener(async (info, tab) => {
     if (info.menuItemId === "resume-loading") {
+		// Change behavior to queue-active if it's stay-discarded
+        if (loadBehavior === 'stay-discarded') {
+            try {
+                await browser.storage.local.set({ loadBehavior: 'queue-active' });
+                logDebug('Changed loadBehavior to queue-active');
+            } catch (error) {
+                console.error('Failed to change loadBehavior:', error);
+            }
+        }
+		
+		// Resume if stuck
         if (!isPaused && loadBehavior === 'queue-active') {
             // reset isProcessing flag
             if (isProcessing) {
@@ -52,6 +128,14 @@ browser.menus.onClicked.addListener((info, tab) => {
             } else {
                 processQueueDelay();
             }
+        }
+    } else if (info.menuItemId === "keep-discarded") {
+        // Change behavior to stay-discarded
+        try {
+            await browser.storage.local.set({ loadBehavior: 'stay-discarded' });
+            logDebug('Changed loadBehavior to stay-discarded');
+        } catch (error) {
+            console.error('Failed to change loadBehavior:', error);
         }
     } else if (info.menuItemId === "load-next-tab") {
         if (isProcessing) {
@@ -89,6 +173,10 @@ async function initializeSettings() {
         isPaused = result.isPaused || false;
         discardingDelay = parseInt(result.discardingDelay, 10) || 0;
         loadingDelay = parseInt(result.loadingDelay, 10) || 0;
+		altClickDiscarded = result.altClickDiscarded || false;
+		if (altClickDiscarded) {
+			injectIntoActiveTab();
+		}
         updateBadge();
         browser.browserAction.setTitle({
             title: `Sequential Tab Loader (${isPaused ? 'Paused' : 'Active'})`
@@ -119,8 +207,9 @@ browser.storage.onChanged.addListener((changes, area) => {
             tabQueue = [];
             activeLoads = 0;
             loadingTabs.clear();
-            updateBadge();
         }
+		updateBadge();
+		updateContextMenu();
     }
     if (changes.isPaused) {
         isPaused = changes.isPaused.newValue;
@@ -135,6 +224,12 @@ browser.storage.onChanged.addListener((changes, area) => {
     if (changes.loadingDelay) {
         loadingDelay = parseInt(changes.loadingDelay.newValue, 10);
     }
+	if (changes.altClickDiscarded) {
+		altClickDiscarded = changes.altClickDiscarded.newValue;
+		if (altClickDiscarded) {
+			injectIntoActiveTab();
+		}
+	}
     if (!isPaused && loadBehavior === 'queue-active') {
         if (loadingDelay == 0){
             processQueue();
@@ -146,12 +241,27 @@ browser.storage.onChanged.addListener((changes, area) => {
 
 // Update browser action badge
 function updateBadge() {
-    const badgeText = isPaused ? 'II' : tabQueue.length.toString();
-    browser.browserAction.setBadgeText({ text: badgeText });
-    browser.browserAction.setBadgeBackgroundColor({
-        color: isPaused ? '#ff9500' : '#4CAF50' // Orange for paused, light green for active
-    });
-    //console.debug(`Queue length: ${tabQueue.length}, Active loads: ${activeLoads}`);
+	let badgeText, badgeColor;
+	
+	if (isPaused) {
+        // Paused state takes priority
+        badgeText = 'II';
+        badgeColor = '#ff9500'; // Orange
+    } else if (loadBehavior === 'stay-discarded') {
+        // Stay discarded state
+        badgeText = 'X';
+        badgeColor = '#808080'; // Gray
+		//badgeColor = '#5C9FD6'; // Ice blue
+    } else {
+        // Queue active state
+        badgeText = tabQueue.length.toString();
+        badgeColor = '#4CAF50'; // Light green
+    }
+	
+	browser.browserAction.setBadgeText({ text: badgeText });
+    browser.browserAction.setBadgeBackgroundColor({ color: badgeColor });
+
+    logDebug(`Queue length: ${tabQueue.length}, Active loads: ${activeLoads}`);
 }
 
 // Toggle pause state on browser action click
@@ -205,7 +315,19 @@ browser.tabs.onCreated.addListener(async (tab) => {
 });
 
 // Handle tab updates
-browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+	// If page is navigating or reloading, mark as not injected
+    if (changeInfo.status === 'loading') {
+        if (injectedTabs.has(tabId)) {
+            injectedTabs.delete(tabId);
+            logDebug(`Tab ${tabId} navigating, clearing injection status`);
+        }
+    }
+	// If this is the active tab and injection is enabled, inject when complete
+    if (changeInfo.status === 'complete' && tab.active && altClickDiscarded) {
+        injectContentScript(tabId, tab.url);
+    }
+
     if (changeInfo.status !== 'complete' || !loadingTabs.has(tabId)) {
         return;
     }
@@ -289,9 +411,52 @@ async function processQueueDelay() {
     }
 }
 
-// Handle tab activation to remove activated tabs from queue
+// Message listener
+browser.runtime.onMessage.addListener((message, sender) => {
+    if (message.action === 'createDiscardedTab') {
+        logDebug('Creating discarded tab for:', message.url);
+        
+        browser.tabs.query({ active: true, currentWindow: true }).then(tabs => {
+            const activeTab = tabs[0];
+            
+            browser.tabs.create({
+                url: message.url,
+                discarded: true,
+                active: false,
+                //index: activeTab.index + 1,
+				openerTabId: activeTab.id
+            }).then(tab => {
+                if (loadBehavior === 'queue-active' && tabQueue.length < queueLimit) {
+                    tabQueue.push(tab);
+                    updateBadge();
+                    if (!isPaused) {
+                        if (loadingDelay == 0) {
+                            processQueue();
+                        } else {
+                            processQueueDelay();
+                        }
+                    }
+                }
+            });
+        });
+    }
+});
+
+// Handle tab activation to remove activated tabs from queue, as well as content script injection
 browser.tabs.onActivated.addListener(async (activeInfo) => {
     const tabId = activeInfo.tabId;
+	
+	// Content script injection
+	if (altClickDiscarded) {
+		try {
+			const tab = await browser.tabs.get(activeInfo.tabId);
+			await injectContentScript(activeInfo.tabId, tab.url);
+		} catch (error) {
+			logDebug('Error handling tab activation:', error);
+		}
+	}
+
+	// Handle tab activation to remove activated tabs from queue
     try {
         const queueLengthBefore = tabQueue.length;
         tabQueue = tabQueue.filter(tab => tab.id !== tabId);
@@ -317,7 +482,9 @@ browser.tabs.onActivated.addListener(async (activeInfo) => {
 
 // Clean up on tab removal
 browser.tabs.onRemoved.addListener((tabId) => {
+	injectedTabs.delete(tabId);
     const wasLoading = loadingTabs.delete(tabId);
+	
     if (wasLoading) {
         activeLoads--;
     }
