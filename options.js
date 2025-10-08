@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', async() => {
     try {
         // Load saved settings
-        const result = await browser.storage.local.get(['maxConcurrentTabs', 'queueLimit', 'loadBehavior', 'discardingDelay', 'loadingDelay']);
+        const result = await browser.storage.local.get(['maxConcurrentTabs', 'queueLimit', 'loadBehavior', 'discardingDelay', 'loadingDelay', 'altClickDiscarded']);
         document.getElementById('max-tabs').value = result.maxConcurrentTabs || 1;
         document.getElementById('queue-limit').value = result.queueLimit || 25;
         document.getElementById('load-behavior').value = result.loadBehavior || 'queue-active';

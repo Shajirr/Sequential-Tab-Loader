@@ -58,10 +58,6 @@ function updateContextMenu() {
     browser.menus.update("keep-discarded", {
         visible: loadBehavior === 'queue-active'
     }).catch(() => {}); // Ignore errors if menu doesn't exist yet
-    
-    browser.menus.update("resume-loading", {
-        visible: loadBehavior === 'stay-discarded' || isPaused
-    }).catch(() => {});
 }
 
 // Inject content script into a tab
@@ -166,17 +162,17 @@ browser.menus.onClicked.addListener(async (info, tab) => {
 // Initialize settings from storage
 async function initializeSettings() {
     try {
-        const result = await browser.storage.local.get(['maxConcurrentTabs', 'queueLimit', 'loadBehavior', 'isPaused', 'discardingDelay', 'loadingDelay']);
+        const result = await browser.storage.local.get(['maxConcurrentTabs', 'queueLimit', 'loadBehavior', 'isPaused', 'discardingDelay', 'loadingDelay', 'altClickDiscarded']);
         maxConcurrentTabs = parseInt(result.maxConcurrentTabs, 10) || 1;
         queueLimit = parseInt(result.queueLimit, 10) || 25;
         loadBehavior = result.loadBehavior || 'queue-active';
         isPaused = result.isPaused || false;
         discardingDelay = parseInt(result.discardingDelay, 10) || 0;
         loadingDelay = parseInt(result.loadingDelay, 10) || 0;
-		altClickDiscarded = result.altClickDiscarded || false;
-		if (altClickDiscarded) {
-			injectIntoActiveTab();
-		}
+        altClickDiscarded = result.altClickDiscarded || false;
+        if (altClickDiscarded) {
+            injectIntoActiveTab();
+        }
         updateBadge();
         browser.browserAction.setTitle({
             title: `Sequential Tab Loader (${isPaused ? 'Paused' : 'Active'})`
