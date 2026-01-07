@@ -2,13 +2,13 @@
 document.addEventListener('DOMContentLoaded', async() => {
     try {
         // Load saved settings
-        const result = await browser.storage.local.get(['maxConcurrentTabs', 'queueLimit', 'loadBehavior', 'discardingDelay', 'loadingDelay', 'altClickDiscarded']);
+        const result = await browser.storage.local.get(['maxConcurrentTabs', 'queueLimit', 'loadBehavior', 'discardingDelay', 'loadingDelay', 'altClickMode']);
         document.getElementById('max-tabs').value = result.maxConcurrentTabs || 1;
         document.getElementById('queue-limit').value = result.queueLimit || 25;
         document.getElementById('load-behavior').value = result.loadBehavior || 'queue-active';
         document.getElementById('discarding-delay').value = result.discardingDelay || 0;
         document.getElementById('loading-delay').value = result.loadingDelay || 0;
-        document.getElementById('alt-click-discarded').checked = result.altClickDiscarded || false;
+		document.getElementById('alt-click-mode').value = result.altClickMode || 'none';
 
         // Disable max-tabs if loading-delay is not zero
         const maxTabsInput = document.getElementById('max-tabs');
@@ -34,7 +34,8 @@ document.addEventListener('DOMContentLoaded', async() => {
         const loadBehavior = document.getElementById('load-behavior').value;
         const discardingDelay = parseInt(document.getElementById('discarding-delay').value, 10);
         const loadingDelay = parseInt(document.getElementById('loading-delay').value, 10);
-        const altClickDiscarded = document.getElementById('alt-click-discarded').checked;
+        const altClickMode = document.getElementById('alt-click-mode').value;
+		
 
         // Validate inputs
         if (Number.isNaN(maxTabs) || maxTabs < 1) {
@@ -57,6 +58,10 @@ document.addEventListener('DOMContentLoaded', async() => {
             alert('Loading delay must be between 0 and 5000.');
             return;
         }
+		if (!['none', 'discarded', 'queue'].includes(altClickMode)) {
+            alert('Invalid Alt+click mode selected.');
+            return;
+        }
 
         try {
             // Save settings
@@ -66,7 +71,7 @@ document.addEventListener('DOMContentLoaded', async() => {
                 loadBehavior: loadBehavior,
                 discardingDelay: discardingDelay,
                 loadingDelay: loadingDelay,
-                altClickDiscarded: altClickDiscarded
+				altClickMode: altClickMode
             });
             const message = document.getElementById('save-message');
             message.classList.add('visible');

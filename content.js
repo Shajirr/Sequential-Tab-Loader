@@ -48,17 +48,17 @@ function updateListener(enabled) {
 }
 
 // Check if feature is enabled
-browser.storage.local.get(['altClickDiscarded']).then(result => {
-    isEnabled = result.altClickDiscarded || false;
+browser.storage.local.get(['altClickMode']).then(result => {
+    isEnabled = (result.altClickMode !== 'none');
     logDebug('Alt-click feature enabled:', isEnabled);
-	updateListener(isEnabled);
+    updateListener(isEnabled);
 });
 
 // Listen for setting changes
 browser.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.altClickDiscarded) {
-        isEnabled = changes.altClickDiscarded.newValue;
+    if (area === 'local' && changes.altClickMode) {
+        isEnabled = (changes.altClickMode.newValue !== 'none');
         logDebug('Alt-click feature toggled:', isEnabled);
-		updateListener(isEnabled);
+        updateListener(isEnabled);
     }
 });

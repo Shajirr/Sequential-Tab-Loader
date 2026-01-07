@@ -120,8 +120,12 @@
             Default: 0
         </label>
 		<label>
-			<input type="checkbox" id="alt-click-discarded">
-			Alt+click links to open in discarded tabs
+			Alt+click links behavior:
+			<select id="alt-click-mode">
+				<option value="none">Disabled (Default browser behavior)</option>
+				<option value="discarded">Open tabs as discarded (sequential tab loading)</option>
+				<option value="queue">Add links to tab creation queue (sequential tab creation)</option>
+			</select>
 		</label>
         <div class="save-container">
             <button id="save" type="submit">Save</button>

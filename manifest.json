@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Sequential Tab Loader",
-  "version": "2025.10.8",
+  "version": "2026.1.7",
   "description": "Loads tabs sequentially or in batches to reduce lag.",
   
   "browser_specific_settings": {
